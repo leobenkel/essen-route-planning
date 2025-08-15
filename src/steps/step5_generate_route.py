@@ -174,45 +174,51 @@ def main():
     with open(csv_file, 'w', encoding='utf-8') as f:
         f.write("Done,Game,Hall,Booth,Exhibitor,Buy / Play,Confirmed,Rating,Complexity,Min Players,Max Players,Time (min),BGG Link\n")
         
-        # Create sorted list of (stop, game) pairs
+        # Create sorted list of all game-exhibitor combinations
         game_entries = []
-        for stop in stops:
-            for game in stop.games:
-                game_entries.append((stop, game))
+        
+        # Add all matched games with ALL their exhibitor matches
+        for match in matched_data:
+            game = BoardGame(**match['game'])
+            for exhibitor_match in match.get('exhibitor_matches', []):
+                exhibitor = Exhibitor(**exhibitor_match['exhibitor'])
+                product_confirmed = exhibitor_match.get('product_confirmed', False)
+                game_entries.append((game, exhibitor, product_confirmed))
+        
+        # Add unmatched games (no exhibitor info)
+        for unmatched_game in unmatched:
+            game_entries.append((unmatched_game, None, False))
         
         # Sort by hall (numeric), booth, then game name
         game_entries.sort(key=lambda x: (
-            int(x[0].hall) if x[0].hall.isdigit() else 999,
-            x[0].booth,
-            x[1].name.lower()
+            int(x[1].hall) if x[1] and str(x[1].hall).isdigit() else 999,
+            x[1].booth if x[1] else "ZZZZZ",  # Unmatched games go last
+            x[0].name.lower()
         ))
         
-        for stop, game in game_entries:
-                # Format game data
-                buy_play = "BUY" if game.want_to_buy else "PLAY" if game.want_to_play else ""
-
-                # Check if this game is product-confirmed at this exhibitor
-                confirmed = "FALSE"
-                
-                # Look up the game in the original matched data to find confirmation info
-                for matched_game in matched_data:
-                    if matched_game['game']['object_id'] == game.object_id:
-                        # Check exhibitor matches for this specific exhibitor
-                        for exhibitor_match in matched_game.get('exhibitor_matches', []):
-                            if (exhibitor_match['exhibitor']['name'] == stop.exhibitor.name and 
-                                exhibitor_match.get('product_confirmed', False)):
-                                confirmed = "TRUE"
-                                break
-                        break
-                
-                rating = f"{game.average_rating:.1f}" if game.average_rating else ""
-                complexity = f"{game.complexity_weight:.1f}" if game.complexity_weight else ""
-                min_players = f"{game.min_players}" if game.min_players else ""
-                max_players = f"{game.max_players}" if game.max_players else ""
-                time = f"{game.playing_time}" if game.playing_time else ""
-
-                # Write each game as a separate row with checkbox
-                f.write(f'FALSE,"{game.name}",{stop.hall},\'{stop.booth},"{stop.exhibitor.name}",{buy_play},{confirmed},"{rating}","{complexity}","{min_players}","{max_players}","{time}",{game.bgg_url}\n')
+        for game, exhibitor, product_confirmed in game_entries:
+            # Format game data
+            buy_play = "BUY" if game.want_to_buy else "PLAY" if game.want_to_play else ""
+            confirmed = "TRUE" if product_confirmed else "FALSE"
+            
+            rating = f"{game.average_rating:.1f}" if game.average_rating else ""
+            complexity = f"{game.complexity_weight:.1f}" if game.complexity_weight else ""
+            min_players = f"{game.min_players}" if game.min_players else ""
+            max_players = f"{game.max_players}" if game.max_players else ""
+            time = f"{game.playing_time}" if game.playing_time else ""
+            
+            # Handle matched vs unmatched games
+            if exhibitor:
+                hall = exhibitor.hall
+                booth = f"'{exhibitor.booth}"  # Add quote to prevent scientific notation
+                exhibitor_name = exhibitor.name
+            else:
+                hall = "N/A"
+                booth = "'N/A"
+                exhibitor_name = "UNMATCHED"
+            
+            # Write each game-exhibitor combination as a separate row
+            f.write(f'FALSE,"{game.name}",{hall},{booth},"{exhibitor_name}",{buy_play},{confirmed},"{rating}","{complexity}","{min_players}","{max_players}","{time}",{game.bgg_url}\n')
     print(f"💾 Saved Google Sheets CSV to: {csv_file}")
     
     # Print summary
