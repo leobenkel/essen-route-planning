@@ -116,6 +116,12 @@ The tool implements intelligent caching to:
 
 ```
 board_games/
+├── scripts/                   # Executable step scripts
+│   ├── step_01                # Extract games from collection
+│   ├── step_02                # Scrape BGG for publisher data
+│   ├── step_03                # Fetch Essen exhibitor data
+│   ├── step_04                # Match publishers to exhibitors
+│   └── step_05                # Generate optimized route
 ├── src/
 │   ├── steps/                 # Processing pipeline steps
 │   │   ├── step1_extract_games.py
