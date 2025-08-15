@@ -33,10 +33,3 @@ source venv/bin/activate
 echo "📍 Generating your personalized Essen route..."
 echo "▶️  Running step 5..."
 python src/steps/step5_generate_route.py
-
-echo ""
-current_year=$(date +%Y)
-echo "🎯 Your Essen Spiel $current_year route is ready!"
-echo "   📄 Check: data/output/ESSEN_ROUTE.md"
-echo "   📊 CSV:   data/output/route_summary.csv"
-echo "   🔧 JSON:  data/output/route_report.json"

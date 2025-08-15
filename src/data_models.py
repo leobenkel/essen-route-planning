@@ -177,7 +177,7 @@ class RouteReport(BaseModel):
                         info_parts.append(f"⏱️{game.playing_time}min")
                     
                     info_str = f" ({' | '.join(info_parts)})" if info_parts else ""
-                    lines.append(f"- {priority} [{game.name}]({game.bgg_url}){info_str}")
+                    lines.append(f"- [ ] {priority} [{game.name}]({game.bgg_url}){info_str}")
                 lines.append("")
         
         if self.unmatched_games:
@@ -201,6 +201,94 @@ class RouteReport(BaseModel):
                     info_parts.append(f"⏱️{game.playing_time}min")
                 
                 info_str = f" ({' | '.join(info_parts)})" if info_parts else ""
-                lines.append(f"- {priority} [{game.name}]({game.bgg_url}){info_str}")
+                lines.append(f"- [ ] {priority} [{game.name}]({game.bgg_url}){info_str}")
         
         return "\n".join(lines)
+    
+    def to_html(self) -> str:
+        """Generate an HTML report that pastes well into Google Docs."""
+        checkbox = '<input type="checkbox" />'  # HTML checkboxes
+        
+        html = [
+            "<h1>Essen Spiel Route Planning Report</h1>",
+            "",
+            "<h2>Legend</h2>",
+            "<ul>",
+            "<li>🛒 Want to Buy | 🎮 Want to Play</li>",
+            "<li>⭐ BGG Average Rating | 🎯 Complexity Weight | 👥 Player Count | ⏱️ Playing Time</li>",
+            "</ul>",
+            "",
+            f"<h2>Summary</h2>",
+            "<ul>",
+            f"<li>Total target games: {self.total_games}</li>",
+            f"<li>Successfully matched: {self.matched_games}</li>",
+            f"<li>Unmatched games: {len(self.unmatched_games)}</li>",
+            "</ul>",
+            "",
+            "<h2>Route by Hall</h2>",
+            ""
+        ]
+        
+        # Group by hall
+        halls: Dict[str, List[RouteStop]] = {}
+        for stop in self.route_stops:
+            if stop.hall not in halls:
+                halls[stop.hall] = []
+            halls[stop.hall].append(stop)
+        
+        # Sort halls numerically/alphabetically
+        for hall in sorted(halls.keys(), key=lambda x: (len(x), x)):
+            html.append(f"<h3>Hall {hall}</h3>")
+            
+            stops = sorted(halls[hall], key=lambda s: s.priority_score, reverse=True)
+            for stop in stops:
+                html.append(f"<h4>Booth {stop.booth} - {stop.exhibitor.name}</h4>")
+                html.append("<ul>")
+                for game in stop.games:
+                    priority = "🛒" if game.want_to_buy else "🎮"
+                    
+                    # Build game info string
+                    info_parts = []
+                    if game.average_rating:
+                        info_parts.append(f"⭐{game.average_rating:.1f}")
+                    if game.complexity_weight:
+                        info_parts.append(f"🎯{game.complexity_weight:.1f}")
+                    if game.min_players and game.max_players:
+                        if game.min_players == game.max_players:
+                            info_parts.append(f"👥{game.min_players}")
+                        else:
+                            info_parts.append(f"👥{game.min_players}-{game.max_players}")
+                    if game.playing_time:
+                        info_parts.append(f"⏱️{game.playing_time}min")
+                    
+                    info_str = f" ({' | '.join(info_parts)})" if info_parts else ""
+                    html.append(f'<li>{checkbox} {priority} <a href="{game.bgg_url}">{game.name}</a>{info_str}</li>')
+                html.append("</ul>")
+                html.append("")
+        
+        if self.unmatched_games:
+            html.append("<h2>Unmatched Games</h2>")
+            html.append("<ul>")
+            for game in self.unmatched_games:
+                priority = "🛒" if game.want_to_buy else "🎮"
+                
+                # Build game info string
+                info_parts = []
+                if game.average_rating:
+                    info_parts.append(f"⭐{game.average_rating:.1f}")
+                if game.complexity_weight:
+                    info_parts.append(f"🎯{game.complexity_weight:.1f}")
+                if game.min_players and game.max_players:
+                    if game.min_players == game.max_players:
+                        info_parts.append(f"👥{game.min_players}")
+                    else:
+                        info_parts.append(f"👥{game.min_players}-{game.max_players}")
+                if game.playing_time:
+                    info_parts.append(f"⏱️{game.playing_time}min")
+                
+                info_str = f" ({' | '.join(info_parts)})" if info_parts else ""
+                html.append(f'<li>{checkbox} {priority} <a href="{game.bgg_url}">{game.name}</a>{info_str}</li>')
+            html.append("</ul>")
+            html.append("")
+        
+        return "\n".join(html)

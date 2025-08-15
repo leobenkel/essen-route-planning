@@ -11,6 +11,7 @@ This script:
 
 import json
 import sys
+import platform
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
 from collections import defaultdict
@@ -158,17 +159,61 @@ def main():
         f.write(report.to_markdown())
     print(f"💾 Saved Markdown report to: {markdown_file}")
     
-    # Generate CSV for easy reference
+    # Save HTML report (for Google Docs copy-paste)
+    html_file = output_dir / "ESSEN_ROUTE.html"
+    with open(html_file, 'w', encoding='utf-8') as f:
+        f.write(report.to_html())
+    print(f"💾 Saved HTML report to: {html_file}")
+    
+    # Load matched data once for confirmation info
+    with open("data/output/matched_games.json", 'r', encoding='utf-8') as f:
+        matched_data = json.load(f).get('matched', [])
+    
+    # Generate Google Sheets-friendly CSV
     csv_file = output_dir / "route_summary.csv"
     with open(csv_file, 'w', encoding='utf-8') as f:
-        f.write("Hall,Booth,Exhibitor,Priority,Games\n")
+        f.write("Done,Game,Hall,Booth,Exhibitor,Buy / Play,Confirmed,Rating,Complexity,Min Players,Max Players,Time (min),BGG Link\n")
+        
+        # Create sorted list of (stop, game) pairs
+        game_entries = []
         for stop in stops:
-            games_str = "; ".join([
-                f"{'[BUY]' if g.want_to_buy else '[PLAY]'} {g.name}"
-                for g in stop.games
-            ])
-            f.write(f"{stop.hall},{stop.booth},\"{stop.exhibitor.name}\",{stop.priority_score},\"{games_str}\"\n")
-    print(f"💾 Saved CSV summary to: {csv_file}")
+            for game in stop.games:
+                game_entries.append((stop, game))
+        
+        # Sort by hall (numeric), booth, then game name
+        game_entries.sort(key=lambda x: (
+            int(x[0].hall) if x[0].hall.isdigit() else 999,
+            x[0].booth,
+            x[1].name.lower()
+        ))
+        
+        for stop, game in game_entries:
+                # Format game data
+                buy_play = "BUY" if game.want_to_buy else "PLAY" if game.want_to_play else ""
+
+                # Check if this game is product-confirmed at this exhibitor
+                confirmed = "FALSE"
+                
+                # Look up the game in the original matched data to find confirmation info
+                for matched_game in matched_data:
+                    if matched_game['game']['object_id'] == game.object_id:
+                        # Check exhibitor matches for this specific exhibitor
+                        for exhibitor_match in matched_game.get('exhibitor_matches', []):
+                            if (exhibitor_match['exhibitor']['name'] == stop.exhibitor.name and 
+                                exhibitor_match.get('product_confirmed', False)):
+                                confirmed = "TRUE"
+                                break
+                        break
+                
+                rating = f"{game.average_rating:.1f}" if game.average_rating else ""
+                complexity = f"{game.complexity_weight:.1f}" if game.complexity_weight else ""
+                min_players = f"{game.min_players}" if game.min_players else ""
+                max_players = f"{game.max_players}" if game.max_players else ""
+                time = f"{game.playing_time}" if game.playing_time else ""
+
+                # Write each game as a separate row with checkbox
+                f.write(f'FALSE,"{game.name}",{stop.hall},\'{stop.booth},"{stop.exhibitor.name}",{buy_play},{confirmed},"{rating}","{complexity}","{min_players}","{max_players}","{time}",{game.bgg_url}\n')
+    print(f"💾 Saved Google Sheets CSV to: {csv_file}")
     
     # Print summary
     print("\n" + "=" * 60)
@@ -223,10 +268,47 @@ def main():
     print("=" * 60)
     print("\n📄 Generated files:")
     print(f"  - {markdown_file} (human-readable route)")
+    print(f"  - {html_file} (Google Docs friendly)")
     print(f"  - {csv_file} (spreadsheet-friendly)")
     print(f"  - {json_file} (full data)")
+    
+    # Add clickable file link
+    html_path = html_file.resolve()
+    print(f"\n🌐 Open in browser: file://{html_path}")
+    
     current_year = datetime.now().year
     print(f"\n🎯 Ready for Essen Spiel {current_year}!")
+    
+    print(f"\n" + "=" * 60)
+    print("📊 GOOGLE SHEETS SETUP INSTRUCTIONS")
+    print("=" * 60)
+    print("To create an interactive tracking spreadsheet:")
+    
+    # Detect OS and provide appropriate clipboard command
+    system = platform.system()
+    print("1. Copy CSV to clipboard:")
+    if system == "Linux":
+        print(f"   cat {csv_file} | xclip -selection clipboard")
+        print(f"   (or: xsel --clipboard < {csv_file})")
+    elif system == "Darwin":  # macOS
+        print(f"   cat {csv_file} | pbcopy")
+    elif system == "Windows":
+        print(f"   type {csv_file} | clip")
+    else:
+        print(f"   # Copy contents of: {csv_file}")
+        print("   # (OS-specific clipboard command not available)")
+    
+    print("\n2. Open Google Sheets: http://sheet.new")
+    print("\n3. Paste content in cell A1 (Ctrl+V)")
+    print("\n4. Click the small clipboard icon at bottom of pasted data")
+    print("   → Select 'Split text to columns'")
+    print("\n5. Click 'Convert to table' button")
+    print("\n6. In 'Done' column header:")
+    print("   → Click dropdown arrow → 'Edit column type' → 'Tick box'")
+    print("\n7. Set up frozen headers:")
+    print("   → View menu → Freeze → '2 rows'")
+    print("\n📅 Note: These instructions are current as of August 2025.")
+    print("    Google Sheets UI may change over time.")
 
 
 if __name__ == "__main__":
