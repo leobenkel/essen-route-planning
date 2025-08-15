@@ -95,16 +95,42 @@ After running, you'll find in `data/output/`:
 
 ## How It Works
 
-1. **Collection Extraction**: Uses DuckDB to efficiently query your BGG collection
-2. **BGG Scraping**: Fetches publisher data with:
-   - Human-like random delays (1-3 seconds)
-   - Persistent caching to avoid re-scraping
-   - Progress saving for recovery
-3. **Essen Data**: Fetches official exhibitor and product lists
-4. **Smart Matching**: Two-tier matching system:
-   - Primary: Fuzzy match publishers to exhibitors (90% threshold)
-   - Fallback: Match game titles to Essen product listings (85% threshold)
-5. **Route Generation**: Prioritizes "Want to Buy" games and organizes by hall
+The pipeline runs through 5 automated steps, as shown in these screenshots from a real execution:
+
+### Pipeline Start
+Running `./run_all` automatically sets up the environment and begins the process.
+
+![Pipeline Start](assets/01-pipeline-start.png)
+
+### Step 1: Collection Extraction
+Uses DuckDB to efficiently query your BGG collection and extract "Want to Play" and "Want to Buy" games.
+
+![Step 1: Extract Games](assets/02-step1-extract-games.png)
+
+### Step 2: BGG Scraping
+Fetches publisher data with human-like random delays (1-3 seconds), persistent caching, and progress saving.
+
+![Step 2: Scrape BGG](assets/03-step2-scrape-bgg.png)
+
+### Step 3: Essen Data Fetching
+Downloads official exhibitor and product lists from Essen Spiel APIs.
+
+![Step 3: Fetch Essen Data](assets/04-step3-fetch-essen-data.png)
+
+### Step 4: Smart Matching
+Two-tier matching system linking your games to exhibitors with fuzzy string matching.
+
+![Step 4: Match Publishers](assets/05-step4-match-publishers.png)
+
+### Step 5: Route Generation
+Creates your optimized route, prioritizing "Want to Buy" games and organizing by hall.
+
+![Step 5: Generate Route](assets/06-step5-generate-route.png)
+
+### Pipeline Complete
+The final result with multiple output formats ready for your Essen adventure!
+
+![Pipeline Complete](assets/07-pipeline-complete.png)
 
 ## Caching Strategy
 
