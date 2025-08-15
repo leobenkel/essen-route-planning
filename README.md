@@ -2,6 +2,8 @@
 
 Automatically generate an optimized route through Essen Spiel based on your BoardGameGeek collection's "Want to Play" and "Want to Buy" lists.
 
+![Example output showing Essen route planning results](assets/essen-route-output-example.png)
+
 ## Features
 
 - 🔧 **Auto-setup**: Creates Python environment and installs dependencies automatically
