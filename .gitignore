@@ -208,10 +208,6 @@ __marimo__/
 
 # Project specific
 collection.csv
-data/cache/
-data/output/*.json
-data/output/*.csv
-PROJECT_TRACKING.md
-config/local_config.json
+data
 .claude
 CLAUDE.md
