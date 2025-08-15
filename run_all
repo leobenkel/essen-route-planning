@@ -1,0 +1,201 @@
+#!/bin/bash
+
+# Master script to run the entire Essen Route Planning pipeline
+# This script runs all steps in sequence with options for resuming and testing
+
+set -e  # Exit on any error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Function to show usage
+show_usage() {
+    echo "🎲 Essen Spiel Route Planning Pipeline"
+    echo "===================================="
+    echo ""
+    echo "🔧 FULLY AUTOMATED SETUP - Just run and go!"
+    echo ""
+    echo "Usage:"
+    echo "  ./run_all                    # Auto-setup and run complete pipeline"
+    echo "  ./run_all --username=USER   # Provide BGG username for collection help"
+    echo "  ./run_all --resume N        # Resume from step N (1-5)"
+    echo "  ./run_all --help            # Show this help"
+    echo ""
+    echo "✨ What this tool does automatically:"
+    echo "  🔧 Creates Python virtual environment (if needed)"
+    echo "  📦 Installs all required dependencies"
+    echo "  📥 Helps you get your BGG collection.csv"
+    echo "  🎯 Extracts your 'Want to Play' and 'Want to Buy' games"
+    echo "  🌐 Scrapes BGG for game details (with smart caching)"
+    echo "  🏢 Fetches current Essen exhibitor data"
+    echo "  🔍 Intelligently matches your games to exhibitors"
+    echo "  📍 Generates your personalized Essen route"
+    echo ""
+    echo "📋 Pipeline steps:"
+    echo "  1. Extract target games (excludes owned games and expansions)"
+    echo "  2. Scrape BGG for publishers and game metadata"
+    echo "  3. Fetch Essen exhibitor and booth data"
+    echo "  4. Match publishers to exhibitors with fallback options"
+    echo "  5. Generate optimized route with rich game information"
+    echo ""
+    echo "✅ Prerequisites (automatically handled):"
+    echo "  - Python 3.8+ (that's it!)"
+    echo "  - Tool will guide you through BGG collection setup"
+    echo ""
+    current_year=$(date +%Y)
+    echo "🎯 Output: Your personalized Essen Spiel $current_year route in data/output/"
+}
+
+# Function to run a step
+run_step() {
+    local step_num=$1
+    local step_script="./scripts/step_0${step_num}"
+    
+    echo ""
+    echo "═══════════════════════════════════════════════════════"
+    echo "Running Step ${step_num}/5"
+    echo "═══════════════════════════════════════════════════════"
+    
+    if [ ! -f "$step_script" ]; then
+        echo "❌ Error: $step_script not found!"
+        exit 1
+    fi
+    
+    # Pass through username argument to step 1
+    if [ $step_num -eq 1 ] && [ -n "$USERNAME_ARG" ]; then
+        if ! bash "$step_script" "$USERNAME_ARG"; then
+            echo ""
+            echo "❌ Pipeline failed at step $step_num"
+            echo "   Fix the issue and resume with: ./run_all --resume $step_num"
+            exit 1
+        fi
+    else
+        if ! bash "$step_script"; then
+            echo ""
+            echo "❌ Pipeline failed at step $step_num"
+            echo "   Fix the issue and resume with: ./run_all --resume $step_num"
+            exit 1
+        fi
+    fi
+}
+
+# Parse command line arguments
+START_STEP=1
+TEST_MODE=false
+USERNAME_ARG=""
+
+# Store username argument to pass to step 1
+for arg in "$@"; do
+    if [[ $arg == --username=* ]]; then
+        USERNAME_ARG="$arg"
+        break
+    fi
+done
+
+case "${1:-}" in
+    --help|-h)
+        show_usage
+        exit 0
+        ;;
+    --test)
+        TEST_MODE=true
+        echo "🧪 TEST MODE: Will use small samples"
+        ;;
+    --resume)
+        if [ -z "${2:-}" ]; then
+            echo "❌ Error: Please specify step number"
+            echo "   Example: ./run_all --resume 3"
+            exit 1
+        fi
+        START_STEP=$2
+        if ! [[ "$START_STEP" =~ ^[1-5]$ ]]; then
+            echo "❌ Error: Step must be between 1 and 5"
+            exit 1
+        fi
+        echo "📍 Resuming from step $START_STEP"
+        ;;
+    --username=*)
+        # Username argument - will be passed to step 1
+        ;;
+    "")
+        # Default: run all steps
+        ;;
+    *)
+        echo "❌ Error: Unknown option: $1"
+        show_usage
+        exit 1
+        ;;
+esac
+
+echo "🎲 Essen Spiel Route Planning Pipeline"
+echo "===================================="
+
+# Check and setup virtual environment
+if [ ! -d "venv" ]; then
+    echo "🔧 Setting up Python virtual environment..."
+    if ! command -v python3 &> /dev/null; then
+        echo "❌ Error: python3 not found!"
+        echo "   Please install Python 3.8+ first"
+        exit 1
+    fi
+    
+    python3 -m venv venv
+    echo "✅ Virtual environment created"
+fi
+
+# Check and install requirements
+if [ ! -f "venv/pyvenv.cfg" ]; then
+    echo "❌ Error: Virtual environment appears corrupted"
+    echo "   Please remove 'venv' directory and run again"
+    exit 1
+fi
+
+echo "🔧 Checking Python dependencies..."
+source venv/bin/activate
+
+# Check if requirements need to be installed
+REQUIREMENTS_SATISFIED=true
+if [ -f "requirements.txt" ]; then
+    # Simple check: see if key packages are installed
+    if ! python -c "import requests, diskcache, fuzzywuzzy, pydantic, duckdb" 2>/dev/null; then
+        REQUIREMENTS_SATISFIED=false
+    fi
+fi
+
+if [ "$REQUIREMENTS_SATISFIED" = false ]; then
+    echo "📦 Installing Python dependencies..."
+    pip install -r requirements.txt
+    echo "✅ Dependencies installed"
+else
+    echo "✅ Dependencies already satisfied"
+fi
+
+if [ ! -f "collection.csv" ]; then
+    echo "❌ Error: collection.csv not found!"
+    echo "   Step 1 will help you get your BGG collection."
+    echo "   Please run step 1 first to get setup instructions."
+    exit 1
+fi
+
+# Run steps
+for step in {1..5}; do
+    if [ $step -ge $START_STEP ]; then
+        run_step $step
+    fi
+done
+
+# Success!
+echo ""
+echo "═══════════════════════════════════════════════════════"
+echo "✅ PIPELINE COMPLETE!"
+echo "═══════════════════════════════════════════════════════"
+echo ""
+current_year=$(date +%Y)
+echo "🎯 Your Essen Spiel $current_year route is ready!"
+echo ""
+echo "📄 Generated files:"
+echo "   - data/output/ESSEN_ROUTE.md     (human-readable route)"
+echo "   - data/output/route_summary.csv  (spreadsheet-friendly)"
+echo "   - data/output/route_report.json  (full data)"
+echo ""
+echo "🎲 Have a great time at Essen Spiel $current_year!"

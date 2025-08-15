@@ -1,0 +1,81 @@
+#!/bin/bash
+
+# Step 1: Extract target games from BGG collection
+# This script handles virtual environment activation and runs the Python script
+
+set -e  # Exit on any error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
+echo "🎲 Essen Route Planning - Step 1: Extract Games"
+echo "=============================================="
+
+# Check if virtual environment exists
+if [ ! -d "venv" ]; then
+    echo "❌ Error: Virtual environment not found!"
+    echo "   Please run: python3 -m venv venv"
+    echo "   Then: source venv/bin/activate && pip install -r requirements.txt"
+    exit 1
+fi
+
+# Check if collection.csv exists
+if [ ! -f "collection.csv" ]; then
+    echo "❌ Error: collection.csv not found!"
+    echo ""
+    
+    # Check if username was provided via --username flag
+    BGG_USERNAME=""
+    for arg in "$@"; do
+        if [[ $arg == --username=* ]]; then
+            BGG_USERNAME="${arg#--username=}"
+            break
+        fi
+    done
+    
+    # If no username provided, prompt for it
+    if [ -z "$BGG_USERNAME" ]; then
+        echo "🎯 Let's get your BGG collection!"
+        echo ""
+        echo "💡 Don't know your exact BGG username?"
+        echo "   Visit: https://boardgamegeek.com/api/users/current"
+        echo "   (Look for the 'username' field in the response)"
+        echo ""
+        echo -n "Enter your BoardGameGeek username: "
+        read BGG_USERNAME
+        echo ""
+    fi
+    
+    # Validate username is not empty
+    if [ -z "$BGG_USERNAME" ]; then
+        echo "❌ Error: Username cannot be empty"
+        exit 1
+    fi
+    
+    echo "🎯 To get your BGG collection for user '$BGG_USERNAME':"
+    echo "   1. Visit your collection page:"
+    echo "      https://boardgamegeek.com/collection/user/$BGG_USERNAME"
+    echo ""
+    echo "   2. Click 'Export/Download' button and save as 'collection.csv'"
+    echo ""
+    echo "📋 Or use this direct download URL:"
+    echo "   https://boardgamegeek.com/geekcollection.php?action=exportcsv&subtype=boardgame&username=$BGG_USERNAME&all=1"
+    echo ""
+    echo "💡 Tip: You can also run this script with your username:"
+    echo "   ./scripts/step_01 --username=$BGG_USERNAME"
+    echo ""
+    exit 1
+fi
+
+# Activate virtual environment and run the script
+echo "🐍 Activating virtual environment..."
+source venv/bin/activate
+
+echo "▶️  Running step 1..."
+echo "   Usage: ./step_01 [--include-expansions]"
+echo "   Default: Excludes expansions (recommended for Essen route planning)"
+python src/steps/step1_extract_games.py "$@"
+
+echo ""
+echo "✅ Step 1 complete!"
+echo "   Next: Run ./step_02 to scrape BGG for publishers"

@@ -205,3 +205,13 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Project specific
+collection.csv
+data/cache/
+data/output/*.json
+data/output/*.csv
+PROJECT_TRACKING.md
+config/local_config.json
+.claude
+CLAUDE.md

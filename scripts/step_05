@@ -1,0 +1,42 @@
+#!/bin/bash
+
+# Step 5: Generate the final Essen Spiel route
+# This script handles virtual environment activation and runs the Python script
+
+set -e  # Exit on any error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
+echo "🎲 Essen Route Planning - Step 5: Generate Route"
+echo "=============================================="
+
+# Check if virtual environment exists
+if [ ! -d "venv" ]; then
+    echo "❌ Error: Virtual environment not found!"
+    echo "   Please run: python3 -m venv venv"
+    echo "   Then: source venv/bin/activate && pip install -r requirements.txt"
+    exit 1
+fi
+
+# Check if step 4 output exists
+if [ ! -f "data/output/matched_games.json" ]; then
+    echo "❌ Error: matched_games.json not found!"
+    echo "   Please run ./step_04 first"
+    exit 1
+fi
+
+# Activate virtual environment and run the script
+echo "🐍 Activating virtual environment..."
+source venv/bin/activate
+
+echo "📍 Generating your personalized Essen route..."
+echo "▶️  Running step 5..."
+python src/steps/step5_generate_route.py
+
+echo ""
+current_year=$(date +%Y)
+echo "🎯 Your Essen Spiel $current_year route is ready!"
+echo "   📄 Check: data/output/ESSEN_ROUTE.md"
+echo "   📊 CSV:   data/output/route_summary.csv"
+echo "   🔧 JSON:  data/output/route_report.json"

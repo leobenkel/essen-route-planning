@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Step 4: Match BGG publishers to Essen exhibitors
+# This script handles virtual environment activation and runs the Python script
+
+set -e  # Exit on any error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR/.."
+
+echo "🎲 Essen Route Planning - Step 4: Match Publishers"
+echo "==============================================="
+
+# Check if virtual environment exists
+if [ ! -d "venv" ]; then
+    echo "❌ Error: Virtual environment not found!"
+    echo "   Please run: python3 -m venv venv"
+    echo "   Then: source venv/bin/activate && pip install -r requirements.txt"
+    exit 1
+fi
+
+# Check if step 3 outputs exist
+if [ ! -f "data/output/enriched_games.json" ]; then
+    echo "❌ Error: enriched_games.json not found!"
+    echo "   Please run ./step_02 first"
+    exit 1
+fi
+
+if [ ! -f "data/output/essen_exhibitors.json" ]; then
+    echo "❌ Error: essen_exhibitors.json not found!"
+    echo "   Please run ./step_03 first"
+    exit 1
+fi
+
+# Activate virtual environment and run the script
+echo "🐍 Activating virtual environment..."
+source venv/bin/activate
+
+echo "🔍 Matching games to exhibitors using fuzzy matching..."
+echo "▶️  Running step 4..."
+python src/steps/step4_match_publishers.py
+
+echo ""
+echo "✅ Step 4 complete!"
+echo "   Next: Run ./step_05 to generate your final route"
