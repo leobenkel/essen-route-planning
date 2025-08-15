@@ -115,32 +115,29 @@ The tool implements intelligent caching to:
 ## Project Structure
 
 ```
-essen-route-planning/
+board_games/
 ├── src/
-│   ├── steps/                 # Step scripts
+│   ├── steps/                 # Processing pipeline steps
 │   │   ├── step1_extract_games.py
 │   │   ├── step2_scrape_bgg.py
 │   │   ├── step3_fetch_essen_data.py
 │   │   ├── step4_match_publishers.py
 │   │   └── step5_generate_route.py
 │   ├── data_models.py         # Pydantic models for type safety
-│   ├── collection_extractor.py # DuckDB-based extraction
-│   ├── bgg_scraper.py         # BGG scraping with caching
+│   ├── collection_extractor.py # DuckDB-based collection parsing
+│   ├── bgg_scraper.py         # BGG API scraping with caching
+│   ├── utils.py               # Shared utilities
 │   └── __init__.py
-├── tests/                     # Test scripts
-│   └── test_extraction.py
 ├── data/
-│   ├── cache/                 # Cached API responses
-│   └── output/                # Generated routes
-├── step_01                    # Bash wrapper for step 1
-├── step_02                    # Bash wrapper for step 2
-├── step_03                    # Bash wrapper for step 3
-├── step_04                    # Bash wrapper for step 4
-├── step_05                    # Bash wrapper for step 5
-├── run_all                    # Master bash script
-├── requirements.txt           # Python dependencies
+│   ├── cache/                 # Persistent caching for API responses
+│   └── output/                # Generated route files
+│       ├── ESSEN_ROUTE.md     # Human-readable route
+│       ├── ESSEN_ROUTE.html   # Browser-friendly format
+│       ├── route_summary.csv  # Google Sheets compatible
+│       └── *.json             # Intermediate processing files
 ├── collection.csv             # Your BGG collection (git-ignored)
-└── PROJECT_TRACKING.md        # Development tracking (git-ignored)
+├── README.md                  # This file
+└── requirements.txt           # Python dependencies
 ```
 
 ## Configuration
