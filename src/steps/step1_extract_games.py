@@ -12,10 +12,12 @@ import json
 import sys
 from pathlib import Path
 import argparse
+import os
 
 # Add parent directory to path to import from src
 sys.path.append(str(Path(__file__).parent.parent))
 from collection_extractor import CollectionExtractor
+from utils import safe_input
 
 
 def main():
@@ -66,12 +68,8 @@ def main():
             print(f"\n   Target games: {expansion_info['total_without_expansions']} (excluding expansions)")
             print(f"   If including expansions: {expansion_info['total_with_expansions']} games")
             
-            try:
-                response = input("\nInclude expansions anyway? (y/n, default=n): ").lower()
-                include_expansions = response == 'y'
-            except (EOFError, KeyboardInterrupt):
-                print("\nNo input provided, excluding expansions (default).")
-                include_expansions = False
+            response = safe_input("\nInclude expansions anyway? (y/n, default=n): ", "n").lower()
+            include_expansions = response == 'y'
         else:
             print("   No expansions detected in your target games.")
             include_expansions = False

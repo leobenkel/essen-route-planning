@@ -56,7 +56,7 @@ with open('data/output/target_games.json', 'r') as f:
 fi
 echo ""
 echo "▶️  Running step 2..."
-echo "   Usage: ./step_02 [--test|--full|--use-cache]"
+echo "   Usage: ./step_02 [--no-cache]"
 python src/steps/step2_scrape_bgg.py "$@"
 
 echo ""
