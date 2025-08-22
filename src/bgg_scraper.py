@@ -15,7 +15,7 @@ from data_models import BoardGame
 class BGGScraper:
     """Scraper for BoardGameGeek publisher information."""
     
-    def __init__(self, cache_dir: str = "data/cache", 
+    def __init__(self, cache_dir: str = "data/cache/bgg", 
                  rate_limit: Tuple[float, float] = (1.0, 3.0)):
         """Initialize the scraper with caching and rate limiting.
         
@@ -66,15 +66,15 @@ class BGGScraper:
             print(f"Error fetching {url}: {e}")
             return None
     
-    def get_publishers(self, game: BoardGame) -> List[str]:
-        """Extract publisher names from a game's BGG page."""
-        content = self._fetch_page(game.bgg_url)
+    def _extract_bgg_data(self, url: str) -> Optional[Dict[str, Any]]:
+        """Extract BGG JSON data from a game page.
+        
+        Returns the parsed GEEK.geekitemPreload data or None if not found.
+        """
+        content = self._fetch_page(url)
         if not content:
-            return []
+            return None
         
-        publishers = []
-        
-        # First try: Extract from JSON data embedded in the page
         try:
             import re
             import json as json_lib
@@ -83,43 +83,96 @@ class BGGScraper:
             json_match = re.search(r'GEEK\.geekitemPreload\s*=\s*(\{.*?\});', content, re.DOTALL)
             if json_match:
                 json_str = json_match.group(1)
-                data = json_lib.loads(json_str)
-                
-                # Navigate to publisher data
-                if 'item' in data and 'links' in data['item'] and 'boardgamepublisher' in data['item']['links']:
-                    for publisher in data['item']['links']['boardgamepublisher']:
-                        if 'name' in publisher and publisher['name']:
-                            name = publisher['name'].strip()
-                            if name and name not in publishers:
-                                publishers.append(name)
-        except Exception as e:
-            # JSON parsing failed, continue to HTML fallback
+                return json_lib.loads(json_str)
+        except Exception:
             pass
         
-        # Fallback: Try HTML parsing (older method)
-        if not publishers:
-            soup = BeautifulSoup(content, 'html.parser')
-            
-            # Look for publisher links in the game credits
-            publisher_links = soup.find_all('a', href=lambda x: x and '/boardgamepublisher/' in x)
-            
-            for link in publisher_links:
-                publisher_name = link.get_text(strip=True)
-                if publisher_name and publisher_name not in publishers:
-                    publishers.append(publisher_name)
-            
-            # Alternative method: look in the info panel
-            if not publishers:
-                info_items = soup.find_all('div', class_='game-header-credits')
-                for item in info_items:
-                    if 'Publisher' in item.get_text():
-                        links = item.find_all('a')
-                        for link in links:
-                            name = link.get_text(strip=True)
-                            if name and name not in publishers:
-                                publishers.append(name)
+        return None
+    
+    def _extract_from_links(self, data: Dict[str, Any], link_type: str) -> List[str]:
+        """Extract names from a specific link type in BGG data.
         
-        return publishers
+        Args:
+            data: The BGG JSON data
+            link_type: The type of link to extract (e.g., 'boardgamepublisher', 'boardgamemechanic')
+        
+        Returns:
+            List of names extracted from the links
+        """
+        names = []
+        if data and 'item' in data and 'links' in data['item']:
+            if link_type in data['item']['links']:
+                for item in data['item']['links'][link_type]:
+                    if 'name' in item and item['name']:
+                        name = item['name'].strip()
+                        if name and name not in names:
+                            names.append(name)
+        return names
+    
+    def _extract_from_html(self, url: str, link_patterns: List[str]) -> List[str]:
+        """Extract names from HTML links matching specified patterns.
+        
+        Args:
+            url: The URL to fetch
+            link_patterns: List of patterns to match in href (e.g., '/boardgamepublisher/')
+        
+        Returns:
+            List of names extracted from matching links
+        """
+        content = self._fetch_page(url)
+        if not content:
+            return []
+        
+        names = []
+        soup = BeautifulSoup(content, 'html.parser')
+        
+        # Find all links matching any of the patterns
+        for pattern in link_patterns:
+            matching_links = soup.find_all('a', href=lambda x: x and pattern in x)
+            for link in matching_links:
+                name = link.get_text(strip=True)
+                if name and name not in names:
+                    names.append(name)
+        
+        return names
+    
+    def get_publishers(self, game: BoardGame) -> List[str]:
+        """Extract publisher names from a game's BGG page and combine with existing publishers."""
+        # Start with existing publishers (version publishers from collection)
+        all_publishers = game.publishers.copy() if game.publishers else []
+        
+        # Try to extract from JSON data first
+        data = self._extract_bgg_data(game.bgg_url)
+        bgg_publishers = self._extract_from_links(data, 'boardgamepublisher')
+        
+        # Fallback: Try HTML parsing if no publishers found
+        if not bgg_publishers:
+            bgg_publishers = self._extract_from_html(game.bgg_url, ['/boardgamepublisher/'])
+        
+        # Add BGG publishers to the list (avoid duplicates)
+        for publisher in bgg_publishers:
+            if publisher not in all_publishers:
+                all_publishers.append(publisher)
+        
+        return all_publishers
+    
+    def get_tags(self, game: BoardGame) -> List[str]:
+        """Extract tags (mechanics and categories) from a game's BGG page."""
+        # Try to extract from JSON data first
+        data = self._extract_bgg_data(game.bgg_url)
+        
+        # Extract mechanics and categories
+        mechanics = self._extract_from_links(data, 'boardgamemechanic')
+        categories = self._extract_from_links(data, 'boardgamecategory')
+        
+        # Combine both lists (mechanics first, then categories)
+        tags = mechanics + categories
+        
+        # Fallback: Try HTML parsing if no tags found
+        if not tags:
+            tags = self._extract_from_html(game.bgg_url, ['/boardgamemechanic/', '/boardgamecategory/'])
+        
+        return tags
     
     def enrich_games(self, games: List[BoardGame], progress: bool = True) -> List[BoardGame]:
         """Enrich games with publisher information from BGG.

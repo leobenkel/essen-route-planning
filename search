@@ -1,0 +1,71 @@
+#!/bin/bash
+
+# Search owned games by tags
+# This script handles virtual environment activation and runs the Python search script
+
+set -e  # Exit on any error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Function to show usage
+show_usage() {
+    echo "🎲 Board Game Tag Search"
+    echo "========================"
+    echo ""
+    echo "Search your owned games by tags (mechanics and categories)"
+    echo ""
+    echo "Usage:"
+    echo "  ./search <tag>                        # Search for games with matching tag"
+    echo "  ./search --list-tags                  # List all available tags"
+    echo "  ./search --refresh <tag>              # Force refresh from BGG and search"
+    echo "  ./search --include-expansions <tag>   # Include expansions in results"
+    echo "  ./search --help                       # Show this help"
+    echo ""
+    echo "Examples:"
+    echo "  ./search coop           # Find all cooperative games"
+    echo "  ./search \"card game\"    # Find all card games"
+    echo "  ./search dice           # Find all dice games"
+    echo "  ./search economic       # Find economic/trading games"
+    echo "  ./search unplayed       # Find all owned but unplayed games"
+    echo ""
+    echo "💡 Tips:"
+    echo "  • Searches are case-insensitive"
+    echo "  • Partial matches work (e.g., 'coop' matches 'Cooperative Game')"
+    echo "  • Use quotes for multi-word tags"
+    echo "  • Expansions are excluded by default (use --include-expansions to see them)"
+    echo "  • Results are cached for faster subsequent searches"
+}
+
+# Check for help flag
+if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    show_usage
+    exit 0
+fi
+
+# Check if virtual environment exists
+if [ ! -d "venv" ]; then
+    echo "🔧 Setting up Python virtual environment..."
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    echo "✅ Virtual environment ready"
+else
+    # Activate virtual environment
+    source venv/bin/activate
+fi
+
+# Check if collection.csv exists
+if [ ! -f "collection.csv" ]; then
+    echo "❌ Error: collection.csv not found!"
+    echo ""
+    echo "📥 To get your BGG collection:"
+    echo "   1. Visit: https://boardgamegeek.com/collection/user/YOUR_USERNAME"
+    echo "   2. Click 'Export' and save as 'collection.csv' in this directory"
+    echo ""
+    echo "   Or run: ./run_all to start the full pipeline"
+    exit 1
+fi
+
+# Run the search script with all arguments
+python src/steps/search_tags.py "$@"

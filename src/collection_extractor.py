@@ -41,7 +41,11 @@ class CollectionExtractor:
         if (':' in name or ' – ' in name or ' - ' in name):
             # Some base games also have colons, so we need to be careful
             # Skip if it's likely a subtitle rather than expansion
-            if any(word in name_lower for word in ['edition', 'deluxe', 'collection', 'reprint']):
+            # But be more specific - only skip if these words are at the end or standalone
+            exclusion_words = ['edition', 'deluxe', 'collection', 'reprint']
+            # Only exclude if the word appears as a complete word, not as part of another word
+            words = name_lower.split()
+            if any(word in exclusion_words for word in words):
                 return False
             return True
         
@@ -132,6 +136,134 @@ class CollectionExtractor:
             "target_games": result[3],
             "owned": result[4]
         }
+    
+    def extract_all_games(self, mark_expansions: bool = True) -> List[BoardGame]:
+        """Extract ALL games from the collection.
+        
+        Args:
+            mark_expansions: Whether to mark games as expansions
+            
+        Returns:
+            List of all games in collection (with expansions marked)
+        """
+        conn = duckdb.connect(":memory:")
+        
+        query = f"""
+        SELECT 
+            objectid as object_id,
+            objectname as name,
+            rating as personal_rating,
+            CASE WHEN wanttoplay = '1' THEN true ELSE false END as want_to_play,
+            CASE WHEN wanttobuy = '1' THEN true ELSE false END as want_to_buy,
+            CASE WHEN own = '1' THEN true ELSE false END as owned,
+            average as average_rating,
+            avgweight as complexity_weight,
+            playingtime as playing_time,
+            minplayers as min_players,
+            maxplayers as max_players,
+            itemtype as item_type,
+            version_publishers
+        FROM '{self.csv_path}'
+        ORDER BY objectname
+        """
+        
+        result = conn.execute(query).fetchall()
+        conn.close()
+        
+        games = []
+        expansions_count = 0
+        
+        for row in result:
+            game_name = row[1]
+            personal_rating = row[2] if row[2] is not None and row[2] != 0 else None
+            item_type = row[11] if row[11] is not None else ""
+            version_publishers_str = row[12] if row[12] is not None else ""
+            
+            # Parse version publishers (semicolon separated)
+            version_publishers = []
+            if version_publishers_str and version_publishers_str.strip():
+                # Split by semicolon and clean up each publisher name
+                for pub in version_publishers_str.split(';'):
+                    pub_clean = pub.strip()
+                    if pub_clean and pub_clean not in version_publishers:
+                        version_publishers.append(pub_clean)
+            
+            # Check if this is an expansion using itemtype field first, then name-based detection
+            is_expansion = False
+            if mark_expansions:
+                # Primary method: check itemtype field
+                if item_type == "expansion":
+                    is_expansion = True
+                # Fallback method: name-based detection for games not marked in itemtype
+                elif not item_type or item_type == "":
+                    is_expansion = self._is_expansion(game_name)
+            
+            if is_expansion:
+                expansions_count += 1
+            
+            game = BoardGame(
+                object_id=row[0],
+                name=game_name,
+                want_to_play=row[3],
+                want_to_buy=row[4],
+                owned=row[5],
+                is_expansion=is_expansion,
+                publishers=version_publishers,  # Prepopulate with version publishers
+                personal_rating=personal_rating,
+                average_rating=row[6] if row[6] is not None else None,
+                complexity_weight=row[7] if row[7] is not None else None,
+                playing_time=row[8] if row[8] is not None else None,
+                min_players=row[9] if row[9] is not None else None,
+                max_players=row[10] if row[10] is not None else None
+            )
+            games.append(game)
+        
+        print(f"Extracted {len(games)} games ({expansions_count} marked as expansions)")
+        return games
+    
+    def extract_owned_games(self) -> List[BoardGame]:
+        """Extract games that are owned.
+        
+        Returns:
+            List of owned games
+        """
+        conn = duckdb.connect(":memory:")
+        
+        query = f"""
+        SELECT 
+            objectid as object_id,
+            objectname as name,
+            CASE WHEN wanttoplay = '1' THEN true ELSE false END as want_to_play,
+            CASE WHEN wanttobuy = '1' THEN true ELSE false END as want_to_buy,
+            average as average_rating,
+            avgweight as complexity_weight,
+            playingtime as playing_time,
+            minplayers as min_players,
+            maxplayers as max_players
+        FROM '{self.csv_path}'
+        WHERE own = '1'
+        ORDER BY objectname
+        """
+        
+        result = conn.execute(query).fetchall()
+        conn.close()
+        
+        games = []
+        for row in result:
+            game = BoardGame(
+                object_id=row[0],
+                name=row[1],
+                want_to_play=row[2],
+                want_to_buy=row[3],
+                average_rating=row[4] if row[4] is not None else None,
+                complexity_weight=row[5] if row[5] is not None else None,
+                playing_time=row[6] if row[6] is not None else None,
+                min_players=row[7] if row[7] is not None else None,
+                max_players=row[8] if row[8] is not None else None
+            )
+            games.append(game)
+        
+        return games
     
     def get_expansion_info(self) -> dict:
         """Get information about expansions in the target games."""

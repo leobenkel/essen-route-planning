@@ -19,6 +19,7 @@ Automatically generate an optimized route through Essen Spiel based on your Boar
 - 🔗 **Interactive reports**: Clickable BGG links in markdown output with helpful icon legend
 - 📍 **Optimized routes** organized by hall with priority for "Want to Buy" games
 - 💾 **Multiple output formats**: Markdown, CSV, and JSON
+- 🏷️ **Tag-based game search** for your owned games with personal ratings and unplayed discovery ([detailed documentation](docs/TAG_SEARCH_FEATURE.md))
 
 ## Quick Start
 
@@ -84,6 +85,23 @@ If something goes wrong:
 ```bash
 ./run_all --help
 ```
+
+### Tag Search Feature
+
+Search your owned games by mechanics and categories ([full documentation](docs/TAG_SEARCH_FEATURE.md)):
+
+```bash
+./search coop              # Find cooperative games
+./search "card game"       # Find card games  
+./search dice              # Find dice games
+./search unplayed          # Find owned but unplayed games
+./search --list-tags       # List all available tags
+./search --help            # Show comprehensive help
+```
+
+Key features: Personal ratings display, color-coded output, smart partial matching, tag statistics, and expansion filtering.
+
+![Tag Search Examples](assets/09-tag-search-coop.png)
 
 ## Output Files
 
@@ -156,19 +174,26 @@ board_games/
 │   │   ├── step2_scrape_bgg.py
 │   │   ├── step3_fetch_essen_data.py
 │   │   ├── step4_match_publishers.py
-│   │   └── step5_generate_route.py
+│   │   ├── step5_generate_route.py
+│   │   └── search_tags.py     # Tag search CLI interface
 │   ├── data_models.py         # Pydantic models for type safety
 │   ├── collection_extractor.py # DuckDB-based collection parsing
 │   ├── bgg_scraper.py         # BGG API scraping with caching
+│   ├── unified_enricher.py    # Unified game enrichment system
+│   ├── tag_search.py          # Tag search functionality
 │   ├── utils.py               # Shared utilities
 │   └── __init__.py
+├── docs/
+│   └── TAG_SEARCH_FEATURE.md  # Detailed tag search documentation
 ├── data/
 │   ├── cache/                 # Persistent caching for API responses
+│   │   └── bgg/               # BGG page cache subfolder
 │   └── output/                # Generated route files
 │       ├── ESSEN_ROUTE.md     # Human-readable route
 │       ├── ESSEN_ROUTE.html   # Browser-friendly format
 │       ├── route_summary.csv  # Google Sheets compatible
 │       └── *.json             # Intermediate processing files
+├── search                     # Tag search entry point script
 ├── collection.csv             # Your BGG collection (git-ignored)
 ├── README.md                  # This file
 └── requirements.txt           # Python dependencies

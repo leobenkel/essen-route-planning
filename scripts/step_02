@@ -19,10 +19,11 @@ if [ ! -d "venv" ]; then
     exit 1
 fi
 
-# Check if step 1 output exists
-if [ ! -f "data/output/target_games.json" ]; then
-    echo "❌ Error: target_games.json not found!"
-    echo "   Please run ./step_01 first"
+# Check if collection.csv exists (unified enricher needs it)
+if [ ! -f "collection.csv" ]; then
+    echo "❌ Error: collection.csv not found!"
+    echo "   Please download your BGG collection first."
+    echo "   Run ./step_01 for instructions"
     exit 1
 fi
 
@@ -30,34 +31,14 @@ fi
 echo "🐍 Activating virtual environment..."
 source venv/bin/activate
 
-echo "⚠️  Note: BGG scraping uses human-like delays (1-3 seconds between requests)"
-echo "   This is intentional to respect BGG's servers."
-
-# Calculate estimated time based on target games
-if [ -f "data/output/target_games.json" ]; then
-    TOTAL_GAMES=$(python3 -c "
-import json
-with open('data/output/target_games.json', 'r') as f:
-    data = json.load(f)
-    if isinstance(data, list):
-        print(len(data))
-    else:
-        print(len(data.get('games', [])))
-")
-    if [ "$TOTAL_GAMES" -gt 0 ]; then
-        # Average 2 seconds per game (1-3 second range)
-        ESTIMATED_MINUTES=$((TOTAL_GAMES * 2 / 60))
-        if [ "$ESTIMATED_MINUTES" -eq 0 ]; then
-            echo "   Estimated time: ~30 seconds for $TOTAL_GAMES games"
-        else
-            echo "   Estimated time: ~$ESTIMATED_MINUTES minutes for $TOTAL_GAMES games"
-        fi
-    fi
-fi
+echo "⚠️  Note: This step enriches ALL games in your collection"
+echo "   • BGG scraping uses human-like delays (1-3 seconds between requests)"
+echo "   • Enriches both owned games (for tag search) and target games (for Essen route)"
+echo "   • BGG pages cached in data/cache/bgg/, JSON results in data/cache/"
 echo ""
 echo "▶️  Running step 2..."
-echo "   Usage: ./step_02 [--no-cache]"
-python src/steps/step2_scrape_bgg.py "$@"
+echo "   Usage: ./step_02 [--no-cache] [--include-expansions]"
+python src/steps/step2_scrape_bgg_unified.py "$@"
 
 echo ""
 echo "✅ Step 2 complete!"

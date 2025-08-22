@@ -17,7 +17,10 @@ class BoardGame(BaseModel):
     name: str = Field(..., description="Game name")
     want_to_play: bool = Field(default=False)
     want_to_buy: bool = Field(default=False)
-    publishers: List[str] = Field(default_factory=list, description="List of publishers")
+    owned: bool = Field(default=False, description="Whether the game is owned")
+    is_expansion: bool = Field(default=False, description="Whether the game is an expansion")
+    publishers: List[str] = Field(default_factory=list, description="List of publishers (includes version publishers + BGG publishers)")
+    personal_rating: Optional[float] = Field(None, description="Personal rating from collection")
     average_rating: Optional[float] = Field(None, description="BGG average rating")
     complexity_weight: Optional[float] = Field(None, description="Game complexity weight")
     playing_time: Optional[int] = Field(None, description="Playing time in minutes")
@@ -98,6 +101,19 @@ class GameMatch(BaseModel):
     def product_confirmed_matches(self) -> List[ExhibitorMatch]:
         """Get all exhibitor matches where the product is confirmed."""
         return [match for match in self.exhibitor_matches if match.product_confirmed]
+
+
+class TaggedGame(BoardGame):
+    """Represents a board game with tags from BGG collection."""
+    tags: List[str] = Field(default_factory=list, description="List of tags (mechanics and categories)")
+    
+    @property
+    def has_tag(self) -> callable:
+        """Returns a function to check if game has a specific tag."""
+        def check_tag(tag: str) -> bool:
+            tag_lower = tag.lower()
+            return any(tag_lower in t.lower() for t in self.tags)
+        return check_tag
 
 
 class RouteStop(BaseModel):
