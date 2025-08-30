@@ -20,6 +20,7 @@ Automatically generate an optimized route through Essen Spiel based on your Boar
 - 📍 **Optimized routes** organized by hall with priority for "Want to Buy" games
 - 💾 **Multiple output formats**: Markdown, CSV, and JSON
 - 🏷️ **Tag-based game search** for your owned games with personal ratings and unplayed discovery ([detailed documentation](docs/TAG_SEARCH_FEATURE.md))
+- 🎯 **Individual game lookup** - instantly find any BGG game's location at Essen with `./where`
 
 ## Quick Start
 
@@ -103,6 +104,21 @@ Key features: Personal ratings display, color-coded output, smart partial matchi
 
 ![Tag Search Examples](assets/09-tag-search-coop.png)
 
+### Individual Game Lookup
+
+Instantly find any BoardGameGeek game's location at Essen:
+
+```bash
+./where https://boardgamegeek.com/boardgame/418354/babylon
+./where https://boardgamegeek.com/boardgame/1406
+./where boardgamegeek.com/boardgame/418354    # URL format flexible
+./where --help                                # Show detailed help
+```
+
+Key features: Real-time BGG scraping, publisher matching, product confirmation, hall/booth locations, and rich game details display.
+
+![Where Command Example](assets/10-where-command-babylon.png)
+
 ## Output Files
 
 After running, you'll find in `data/output/`:
@@ -175,12 +191,15 @@ board_games/
 │   │   ├── step3_fetch_essen_data.py
 │   │   ├── step4_match_publishers.py
 │   │   ├── step5_generate_route.py
-│   │   └── search_tags.py     # Tag search CLI interface
+│   │   ├── search_tags.py     # Tag search CLI interface
+│   │   └── where.py           # Individual game lookup CLI
 │   ├── data_models.py         # Pydantic models for type safety
 │   ├── collection_extractor.py # DuckDB-based collection parsing
 │   ├── bgg_scraper.py         # BGG API scraping with caching
 │   ├── unified_enricher.py    # Unified game enrichment system
 │   ├── tag_search.py          # Tag search functionality
+│   ├── game_lookup.py         # Individual game lookup service
+│   ├── url_parser.py          # BGG URL parsing utilities
 │   ├── utils.py               # Shared utilities
 │   └── __init__.py
 ├── docs/
@@ -193,7 +212,8 @@ board_games/
 │       ├── ESSEN_ROUTE.html   # Browser-friendly format
 │       ├── route_summary.csv  # Google Sheets compatible
 │       └── *.json             # Intermediate processing files
-├── search                     # Tag search entry point script
+├── search                     # Tag search entry point script  
+├── where                      # Individual game lookup script
 ├── collection.csv             # Your BGG collection (git-ignored)
 ├── README.md                  # This file
 └── requirements.txt           # Python dependencies

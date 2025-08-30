@@ -1,0 +1,67 @@
+#!/bin/bash
+
+# Where Command: Find Essen exhibitor information for a specific BoardGameGeek game
+# This script handles virtual environment activation and runs the Python where script
+
+set -e  # Exit on any error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Function to show usage
+show_usage() {
+    echo "🎲 Essen Game Locator"
+    echo "====================="
+    echo ""
+    echo "Find hall and booth information for any BoardGameGeek game at Essen Spiel."
+    echo ""
+    echo "Usage:"
+    echo "  ./where <BGG_URL>                     # Look up game location"
+    echo "  ./where --help                       # Show detailed help"
+    echo ""
+    echo "Examples:"
+    echo "  ./where https://boardgamegeek.com/boardgame/418354/babylon"
+    echo "  ./where https://boardgamegeek.com/boardgame/1406"
+    echo "  ./where boardgamegeek.com/boardgame/418354"
+    echo ""
+    echo "💡 Tips:"
+    echo "  • Results are cached for faster subsequent lookups"
+    echo "  • Requires Essen data - run ./scripts/step_03 first if needed"
+    echo "  • URL formats: boardgamegeek.com/boardgame/{id} with optional slug"
+}
+
+# Check for help flag or no arguments
+if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]] || [[ $# -eq 0 ]]; then
+    show_usage
+    exit 0
+fi
+
+# Check if virtual environment exists
+if [ ! -d "venv" ]; then
+    echo "🔧 Setting up Python virtual environment..."
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    echo "✅ Virtual environment ready"
+    echo ""
+else
+    # Activate virtual environment
+    source venv/bin/activate
+fi
+
+# Check if Essen data exists (needed for lookups)
+if [ ! -f "data/output/essen_exhibitors.json" ] || [ ! -f "data/output/essen_products.json" ]; then
+    echo "⚠️  Essen data not found."
+    echo "   Fetching Essen Spiel data first..."
+    echo ""
+    
+    # Run step 3 to fetch Essen data
+    python src/steps/step3_fetch_essen_data.py
+    
+    echo ""
+    echo "✅ Essen data ready. Proceeding with lookup..."
+    echo ""
+fi
+
+# Run the where script with all arguments
+python src/steps/where.py "$@"
