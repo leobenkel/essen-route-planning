@@ -5,9 +5,8 @@ beautifulsoup4==4.12.3
 pandas==2.2.3
 python-slugify==8.0.4
 
-# For fuzzy matching
-fuzzywuzzy==0.18.0
-python-Levenshtein==0.25.1
+# For fuzzy matching (rapidfuzz is a modern replacement for fuzzywuzzy)
+rapidfuzz==3.14.1
 
 # For progress bars and CLI
 tqdm==4.66.5

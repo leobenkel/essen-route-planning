@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 from typing import List, Optional, Dict, Any, Tuple
-from fuzzywuzzy import fuzz, process
+from rapidfuzz import fuzz, process
 
 from data_models import BoardGame, Exhibitor, ExhibitorMatch, GameMatch
 from bgg_scraper import BGGScraper

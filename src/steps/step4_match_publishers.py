@@ -13,7 +13,7 @@ import json
 import sys
 from pathlib import Path
 from typing import List, Dict, Any, Tuple
-from fuzzywuzzy import fuzz, process
+from rapidfuzz import fuzz, process
 
 # Add parent directory to path to import from src
 sys.path.append(str(Path(__file__).parent.parent))
