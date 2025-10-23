@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Essen Game Locator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .search-result-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background 0.2s;
+        }
+
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-item:hover {
+            background: #f8f9fa;
+        }
+
+        .search-result-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .search-result-year {
+            color: #888;
+            font-size: 0.9em;
+            margin-left: 8px;
+        }
+
+        .search-loading {
+            padding: 15px;
+            text-align: center;
+            color: #666;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s;
+            width: 100%;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .examples {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            font-size: 0.9em;
+        }
+
+        .examples strong {
+            display: block;
+            margin-bottom: 5px;
+            color: #667eea;
+        }
+
+        .examples code {
+            display: block;
+            padding: 5px;
+            background: white;
+            border-radius: 3px;
+            margin: 3px 0;
+            color: #555;
+            cursor: pointer;
+        }
+
+        .examples code:hover {
+            background: #e9ecef;
+        }
+
+        #results {
+            display: none;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .game-info {
+            border-left: 4px solid #667eea;
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+
+        .game-title {
+            font-size: 1.8em;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .game-details {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .game-details span {
+            margin-right: 15px;
+        }
+
+        .bgg-link {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .bgg-link:hover {
+            text-decoration: underline;
+        }
+
+        .publishers {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .exhibitor {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .exhibitor:hover {
+            border-color: #667eea;
+        }
+
+        .exhibitor.confirmed {
+            border-color: #28a745;
+            background: #f0fff4;
+        }
+
+        .exhibitor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .exhibitor-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .exhibitor-location {
+            background: #667eea;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9em;
+        }
+
+        .exhibitor.confirmed .exhibitor-location {
+            background: #28a745;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        .status-badge.confirmed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.potential {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .exhibitor-info {
+            color: #666;
+            margin-top: 10px;
+            font-size: 0.95em;
+        }
+
+        .exhibitor-info div {
+            margin: 5px 0;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: white;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        .footer a:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .exhibitor-header {
+                flex-direction: column;
+            }
+
+            .exhibitor-location {
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>🎲 Essen Game Locator</h1>
+            <p class="subtitle">Search for games or paste a BoardGameGeek URL to find hall and booth information at Essen Spiel</p>
+
+            <form id="searchForm">
+                <div class="input-group">
+                    <label for="gameInput">Search game name, paste URL, or enter ID</label>
+                    <div class="search-container">
+                        <input
+                            type="text"
+                            id="gameInput"
+                            placeholder="Search: 'Brass Birmingham' or paste URL"
+                            autocomplete="off"
+                        >
+                        <div class="search-results" id="searchResults"></div>
+                    </div>
+                </div>
+                <button type="submit">🔍 Find at Essen</button>
+
+                <div class="examples">
+                    <strong>Try these examples:</strong>
+                    <code onclick="document.getElementById('gameInput').value='Brass Birmingham'; document.getElementById('searchForm').dispatchEvent(new Event('submit'));">Brass Birmingham</code>
+                    <code onclick="document.getElementById('gameInput').value='https://boardgamegeek.com/boardgame/418354/babylon'; document.getElementById('searchForm').dispatchEvent(new Event('submit'));">https://boardgamegeek.com/boardgame/418354/babylon</code>
+                    <code onclick="document.getElementById('gameInput').value='418354'; document.getElementById('searchForm').dispatchEvent(new Event('submit'));">418354</code>
+                </div>
+            </form>
+        </div>
+
+        <div id="loading">
+            <div class="card">
+                <div class="spinner"></div>
+                <p>Looking up game...</p>
+            </div>
+        </div>
+
+        <div id="results">
+            <div class="card">
+                <div id="resultsContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Made by <a href="https://www.linkedin.com/in/leobenkel/" target="_blank" rel="noopener noreferrer">Leo Benkel</a>
+    </div>
+
+    <script>
+        const form = document.getElementById('searchForm');
+        const input = document.getElementById('gameInput');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const resultsContent = document.getElementById('resultsContent');
+        const searchResults = document.getElementById('searchResults');
+
+        let searchTimeout;
+        let currentGameId = null;
+        let searchInProgress = false;
+        let lastSearchResults = [];
+
+        // Load game from URL on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const id = params.get('id');
+            const link = params.get('link');
+
+            if (id) {
+                input.value = id;
+                lookupGame(id, null);
+            } else if (link) {
+                input.value = link;
+                lookupGame(null, link);
+            }
+        });
+
+        // Handle input for search suggestions
+        input.addEventListener('input', (e) => {
+            const value = e.target.value.trim();
+
+            // Clear previous timeout and game ID when user types
+            clearTimeout(searchTimeout);
+            currentGameId = null;
+
+            // Hide search results if empty
+            if (!value) {
+                searchResults.style.display = 'none';
+                lastSearchResults = [];
+                return;
+            }
+
+            // Don't search if it looks like a URL or pure number
+            if (value.includes('boardgamegeek.com') || /^\d+$/.test(value)) {
+                searchResults.style.display = 'none';
+                lastSearchResults = [];
+                return;
+            }
+
+            // Debounce search
+            searchTimeout = setTimeout(() => searchBGG(value), 500);
+        });
+
+        // Hide search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!searchResults.contains(e.target) && e.target !== input) {
+                searchResults.style.display = 'none';
+            }
+        });
+
+        async function searchBGG(query) {
+            if (query.length < 2) return;
+
+            searchInProgress = true;
+            lastSearchResults = [];
+            searchResults.innerHTML = '<div class="search-loading">Searching BGG...</div>';
+            searchResults.style.display = 'block';
+
+            try {
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Search failed');
+                }
+
+                lastSearchResults = data.results;
+
+                if (data.results.length === 0) {
+                    searchResults.innerHTML = '<div class="search-loading">No games found</div>';
+                    return;
+                }
+
+                let html = '';
+                data.results.forEach(game => {
+                    html += `<div class="search-result-item" onclick="selectGame(${game.id}, '${escapeHtml(game.name)}')">`;
+                    html += `<span class="search-result-name">${escapeHtml(game.name)}</span>`;
+                    if (game.year) {
+                        html += `<span class="search-result-year">(${game.year})</span>`;
+                    }
+                    html += '</div>';
+                });
+
+                searchResults.innerHTML = html;
+            } catch (error) {
+                searchResults.innerHTML = `<div class="search-loading">Error: ${escapeHtml(error.message)}</div>`;
+            } finally {
+                searchInProgress = false;
+            }
+        }
+
+        function selectGame(id, name) {
+            input.value = name;
+            searchResults.style.display = 'none';
+            currentGameId = id;
+            lookupGame(id, null);
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const inputValue = input.value.trim();
+            if (!inputValue) return;
+
+            // Hide search results
+            searchResults.style.display = 'none';
+
+            // If we have a currentGameId from search, use it
+            if (currentGameId) {
+                lookupGame(currentGameId, null);
+                currentGameId = null;
+                return;
+            }
+
+            // Determine if input is an ID or URL
+            if (/^\d+$/.test(inputValue)) {
+                lookupGame(inputValue, null);
+                return;
+            }
+
+            if (inputValue.includes('boardgamegeek.com')) {
+                lookupGame(null, inputValue);
+                return;
+            }
+
+            // If it's text (game name), wait for search to complete if in progress
+            if (searchInProgress) {
+                // Wait for search to finish
+                const maxWaitTime = 5000; // 5 seconds max
+                const startTime = Date.now();
+
+                while (searchInProgress && (Date.now() - startTime) < maxWaitTime) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+            }
+
+            // If we have search results, use the first one
+            if (lastSearchResults.length > 0) {
+                const firstResult = lastSearchResults[0];
+                selectGame(firstResult.id, firstResult.name);
+            } else {
+                // No results - show an error
+                displayError(`No results found for "${inputValue}". Please try a different search term.`);
+            }
+        });
+
+        async function lookupGame(id, link) {
+            // Hide previous results
+            results.style.display = 'none';
+            loading.style.display = 'block';
+            resultsContent.innerHTML = '';
+
+            try {
+                // Build URL
+                let url;
+                if (id) {
+                    url = `/where?id=${id}`;
+                } else {
+                    url = `/where?link=${encodeURIComponent(link)}`;
+                }
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Failed to fetch game information');
+                }
+
+                // Update browser URL
+                const newUrl = id ? `?id=${id}` : `?link=${encodeURIComponent(link)}`;
+                window.history.pushState({}, '', newUrl);
+
+                displayResults(data);
+            } catch (error) {
+                displayError(error.message);
+            } finally {
+                loading.style.display = 'none';
+                results.style.display = 'block';
+            }
+        }
+
+        function displayResults(data) {
+            const game = data.game;
+            const exhibitors = data.exhibitors;
+
+            let html = '';
+
+            // Game information
+            html += '<div class="game-info">';
+            html += `<h2 class="game-title">${escapeHtml(game.name)}</h2>`;
+
+            // Game details
+            const details = [];
+            if (game.average_rating) details.push(`⭐ ${game.average_rating.toFixed(1)}`);
+            if (game.complexity_weight) details.push(`🎯 ${game.complexity_weight.toFixed(1)}`);
+            if (game.min_players && game.max_players) {
+                if (game.min_players === game.max_players) {
+                    details.push(`👥 ${game.min_players}`);
+                } else {
+                    details.push(`👥 ${game.min_players}-${game.max_players}`);
+                }
+            }
+            if (game.playing_time) details.push(`⏱️ ${game.playing_time}min`);
+
+            if (details.length > 0) {
+                html += `<div class="game-details">${details.join(' | ')}</div>`;
+            }
+
+            html += `<div><a href="${escapeHtml(game.bgg_url)}" target="_blank" class="bgg-link">🔗 View on BoardGameGeek</a></div>`;
+
+            // Publishers
+            if (game.publishers && game.publishers.length > 0) {
+                html += '<div class="publishers">';
+                html += '<strong>📍 Publishers:</strong> ';
+                html += escapeHtml(game.publishers.join(', '));
+                html += '</div>';
+            }
+
+            html += '</div>';
+
+            // Exhibitors
+            if (exhibitors && exhibitors.length > 0) {
+                html += '<h3 style="margin: 20px 0 15px 0;">🏢 Found at Essen:</h3>';
+
+                exhibitors.forEach(exhibitor => {
+                    const isConfirmed = exhibitor.product_confirmed;
+                    html += `<div class="exhibitor ${isConfirmed ? 'confirmed' : ''}">`;
+
+                    html += '<div class="exhibitor-header">';
+                    html += `<div class="exhibitor-name">${escapeHtml(exhibitor.name)}</div>`;
+                    if (exhibitor.hall && exhibitor.booth) {
+                        html += `<div class="exhibitor-location">Hall ${escapeHtml(exhibitor.hall)}, Booth ${escapeHtml(exhibitor.booth)}</div>`;
+                    }
+                    html += '</div>';
+
+                    if (isConfirmed) {
+                        html += '<div class="status-badge confirmed">✅ Product confirmed</div>';
+                    } else {
+                        const confidence = Math.round(exhibitor.match_confidence * 100);
+                        html += `<div class="status-badge potential">❓ Publisher match (${confidence}%)</div>`;
+                    }
+
+                    html += '<div class="exhibitor-info">';
+                    if (exhibitor.country) {
+                        html += `<div>🌍 ${escapeHtml(exhibitor.country)}</div>`;
+                    }
+                    if (exhibitor.website) {
+                        html += `<div>🌐 <a href="${escapeHtml(exhibitor.website)}" target="_blank">${escapeHtml(exhibitor.website)}</a></div>`;
+                    }
+                    if (exhibitor.product_match_info) {
+                        html += `<div>📦 ${escapeHtml(exhibitor.product_match_info)}</div>`;
+                    }
+                    html += '</div>';
+
+                    html += '</div>';
+                });
+
+                // Summary
+                if (data.confirmed_matches > 0) {
+                    html += `<div style="margin-top: 20px; padding: 15px; background: #d4edda; border-radius: 6px; color: #155724;">`;
+                    html += `✅ ${data.confirmed_matches} confirmed match${data.confirmed_matches > 1 ? 'es' : ''} found`;
+                    html += '</div>';
+                } else {
+                    html += `<div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-radius: 6px; color: #856404;">`;
+                    html += `❓ ${exhibitors.length} potential match${exhibitors.length > 1 ? 'es' : ''} found (no product confirmation available)`;
+                    html += '</div>';
+                }
+            } else {
+                html += '<div class="no-results">';
+                html += '<h3>❌ No exhibitors found at Essen</h3>';
+                if (game.publishers && game.publishers.length > 0) {
+                    html += `<p>Searched for: ${escapeHtml(game.publishers.join(', '))}</p>`;
+                }
+                html += '<p style="margin-top: 15px; color: #888;">The game might be available at Essen but not listed under these publishers.</p>';
+                html += '</div>';
+            }
+
+            resultsContent.innerHTML = html;
+        }
+
+        function displayError(message) {
+            resultsContent.innerHTML = `
+                <div class="error">
+                    <strong>Error:</strong> ${escapeHtml(message)}
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

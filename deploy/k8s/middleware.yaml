@@ -1,0 +1,11 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: redirect-https
+  namespace: essen
+  labels:
+    app: essen-route-planning
+spec:
+  redirectScheme:
+    scheme: https
+    permanent: true

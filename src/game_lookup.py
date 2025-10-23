@@ -17,13 +17,15 @@ class GameLookupService:
         self.bgg_scraper = BGGScraper()
         self._exhibitors_cache: Optional[List[Dict]] = None
         self._products_cache: Optional[List[Dict]] = None
+        # Resolve data directory relative to project root so cwd does not matter
+        self._data_output_dir = Path(__file__).resolve().parent.parent / "data" / "output"
     
     def _load_essen_exhibitors(self) -> List[Dict]:
         """Load Essen exhibitors data."""
         if self._exhibitors_cache is not None:
             return self._exhibitors_cache
             
-        exhibitors_file = Path("data/output/essen_exhibitors.json")
+        exhibitors_file = self._data_output_dir / "essen_exhibitors.json"
         if not exhibitors_file.exists():
             raise FileNotFoundError(
                 "Essen exhibitors data not found! Please run ./scripts/step_03 first"
@@ -39,7 +41,7 @@ class GameLookupService:
         if self._products_cache is not None:
             return self._products_cache
             
-        products_file = Path("data/output/essen_products.json")
+        products_file = self._data_output_dir / "essen_products.json"
         if not products_file.exists():
             raise FileNotFoundError(
                 "Essen products data not found! Please run ./scripts/step_03 first"

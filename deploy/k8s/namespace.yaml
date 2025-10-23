@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: essen
+  labels:
+    name: essen
+    app: essen-route-planning

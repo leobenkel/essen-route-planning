@@ -1,0 +1,38 @@
+# Development Dockerfile - optimized for fast iteration with auto-reload
+FROM python:3.13-slim
+
+# Accept user/group IDs as build args to match host permissions
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+# Install dependencies as root and create directories
+COPY src/api/requirements.txt /tmp/
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+
+# Create directories and set permissions BEFORE switching user
+RUN mkdir -p /app /app/data/cache /app/data/output && \
+    chown -R ${USER_ID}:${GROUP_ID} /app
+
+# Create user with matching ID
+RUN groupadd -g ${GROUP_ID} appuser && \
+    useradd -u ${USER_ID} -g ${GROUP_ID} -m -s /bin/bash appuser
+
+# Switch to non-root user
+USER ${USER_ID}:${GROUP_ID}
+
+# Set working directory
+WORKDIR /app
+
+# Set environment variables
+ENV WATCHFILES_FORCE_POLLING=true
+
+# Expose port
+EXPOSE 8000
+
+# Run uvicorn with reload using --app-dir to set import path
+CMD uvicorn \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --app-dir /app \
+    src.api.main:app \
+    --reload

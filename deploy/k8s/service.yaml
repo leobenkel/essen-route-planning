@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: essen-api-http
+  namespace: essen
+  labels:
+    app: essen-route-planning
+    component: api
+spec:
+  type: ClusterIP
+  selector:
+    app: essen-route-planning
+    component: api
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 8000
+    protocol: TCP

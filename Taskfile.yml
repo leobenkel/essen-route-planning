@@ -1,0 +1,114 @@
+version: '3'
+
+dotenv: ['.env']
+
+vars:
+  ROOT_DIR:
+    sh: pwd
+  IMAGE_NAME: "essen-api-dev:latest"
+
+tasks:
+  dev:
+    desc: "Start API in development mode with auto-reload"
+    cmds:
+      - |
+        docker build \
+          -t "{{.IMAGE_NAME}}" \
+          -f "deploy/docker/Dockerfile.dev" \
+          --build-arg "USER_ID=$(id -u $USER)" \
+          --build-arg "GROUP_ID=$(id -g $USER)" \
+          "{{.ROOT_DIR}}"
+      - |
+        docker run \
+          --rm \
+          -v "{{.ROOT_DIR}}/src:/app/src" \
+          -v "{{.ROOT_DIR}}/data:/app/data" \
+          --security-opt label=disable \
+          --name "essen-api-dev" \
+          --network host \
+          "{{.IMAGE_NAME}}"
+
+  stop:
+    desc: "Stop running dev container"
+    cmds:
+      - docker stop essen-api-dev || true
+
+  logs:
+    desc: "Follow logs from running container"
+    cmds:
+      - docker logs -f essen-api-dev
+
+  shell:
+    desc: "Open shell in running container"
+    cmds:
+      - docker exec -it essen-api-dev /bin/bash
+
+  fetch_essen_data:
+    desc: "Fetch Essen exhibitor and product data"
+    cmds:
+      - |
+        if [ ! -d "venv" ]; then
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+        else
+          source venv/bin/activate
+        fi
+      - python3 src/steps/step3_fetch_essen_data.py
+
+  build_prod:
+    desc: "Build production Docker image"
+    cmds:
+      - |
+        if [ -z "$REGISTRY" ]; then
+          echo "Error: REGISTRY environment variable is not set"
+          echo "Please set REGISTRY in .env file (copy from .env.sample)"
+          exit 1
+        fi
+        docker build \
+          -t "${REGISTRY}/essen-route-planner/www:latest" \
+          -f "deploy/docker/Dockerfile" \
+          "{{.ROOT_DIR}}"
+
+  test_prod:
+    desc: "Test production image locally (data is baked into image)"
+    cmds:
+      - task: build_prod
+      - |
+        if [ -z "$REGISTRY" ]; then
+          echo "Error: REGISTRY environment variable is not set"
+          exit 1
+        fi
+        docker run \
+          --rm \
+          -p 8001:8000 \
+          --name "essen-api-prod-test" \
+          "${REGISTRY}/essen-route-planner/www:latest"
+
+  stop_prod:
+    desc: "Stop production test container"
+    cmds:
+      - docker stop essen-api-prod-test || true
+
+  push_prod:
+    desc: "Build and push production image"
+    cmds:
+      - task: build_prod
+      - |
+        if [ -z "$REGISTRY" ]; then
+          echo "Error: REGISTRY environment variable is not set"
+          exit 1
+        fi
+        docker push "${REGISTRY}/essen-route-planner/www:latest"
+
+  deploy:
+    desc: "Deploy to Kubernetes"
+    dir: deploy/k8s
+    cmds:
+      - ./apply.sh
+
+  clean:
+    desc: "Clean up Docker images and containers"
+    cmds:
+      - docker stop essen-api-dev || true
+      - docker rmi {{.IMAGE_NAME}} || true

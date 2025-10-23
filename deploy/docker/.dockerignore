@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Data and cache (will be managed by Kubernetes PVC)
+data/
+cache/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+docs/
+assets/
+
+# Tests
+tests/
+pytest_cache/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Deployment files (not needed in container)
+deploy/
+kubernetes/
+
+# Scripts (CLI scripts not needed for API)
+scripts/
+where
+search
+run_all
+
+# Collection data
+collection.csv

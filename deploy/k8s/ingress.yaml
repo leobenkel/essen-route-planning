@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: essen-api-public
+  namespace: essen
+  labels:
+    app: essen-route-planning
+  annotations:
+    # Enable cert-manager for automatic SSL
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # Use middleware to redirect HTTP to HTTPS
+    traefik.ingress.kubernetes.io/router.middlewares: essen-redirect-https@kubernetescrd
+spec:
+  ingressClassName: traefik
+  tls:
+  - hosts:
+    - ${DOMAIN}
+    secretName: essen-api-tls
+  rules:
+  - host: ${DOMAIN}
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: essen-api-http
+            port:
+              number: 8000

@@ -21,6 +21,37 @@ Automatically generate an optimized route through Essen Spiel based on your Boar
 - 💾 **Multiple output formats**: Markdown, CSV, and JSON
 - 🏷️ **Tag-based game search** for your owned games with personal ratings and unplayed discovery ([detailed documentation](docs/TAG_SEARCH_FEATURE.md))
 - 🎯 **Individual game lookup** - instantly find any BGG game's location at Essen with `./where`
+- 🌐 **Web API & UI** - Deploy your own instance with beautiful web interface and REST API ([deployment guide](DEPLOYMENT.md))
+
+## Web API
+
+The game lookup feature is now available as a **web service** with both a beautiful UI and REST API!
+
+### Web UI
+- Simply paste a BoardGameGeek URL or game ID
+- Get instant hall and booth information
+- Mobile-friendly, responsive design
+
+### REST API Endpoints
+```bash
+# Look up by game ID
+curl "https://your-domain.example.com/where?id=418354"
+
+# Look up by BGG URL
+curl "https://your-domain.example.com/where?link=https://boardgamegeek.com/boardgame/418354/babylon"
+```
+
+### Local Development
+```bash
+# Quick start with Docker
+./dev.sh
+
+# Or with Python directly
+pip install -r src/api/requirements.txt
+cd src && uvicorn api.main:app --reload
+```
+
+See [LOCAL_DEV.md](LOCAL_DEV.md) for detailed development guide and [DEPLOYMENT.md](DEPLOYMENT.md) for production deployment.
 
 ## Quick Start
 
